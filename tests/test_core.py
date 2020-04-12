@@ -58,13 +58,13 @@ class TestFileHashChecker:
     def test_export_import_data(self):
         checker = FileHashChecker()
         checker.iterate("test_data/files/")
-        checker.export_data()
+        checker.export_data("test_data/data.csv")
         assert len(checker.df) == 21
 
         checker2 = FileHashChecker()
         assert len(checker2.df) == 0
 
-        checker2.import_data()
+        checker2.import_data("test_data/data.csv")
         assert len(checker2.df) == len(checker.df)
 
     def test_duplicates(self):
