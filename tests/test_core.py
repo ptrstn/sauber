@@ -4,17 +4,6 @@ from sauber.core import FileHashChecker
 
 
 class TestFileHashChecker:
-    def test_add(self):
-        checker = FileHashChecker()
-        checker.add("test_data/files/base/jpeg/asphalt.jpg")
-        assert len(checker.df) == 1
-        checker.add("test_data/files/base/jpeg/clouds.jpg")
-        assert len(checker.df) == 2
-        checker.add("test_data/files/base/jpeg/curved_road.jpg")
-        checker.add("test_data/files/base/empty_file")
-        checker.add("test_data/files/base/mp3/Right_Here_Beside_You.mp3")
-        assert len(checker.df) == 5
-
     def test_iterate(self):
         checker = FileHashChecker()
         checker.iterate("test_data/files/")

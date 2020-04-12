@@ -27,23 +27,6 @@ class FileHashChecker:
         )
         self.df.set_index("file", inplace=True)
 
-    def iterate_old(self, path):
-        for sub_path in pathlib.Path(path).rglob("*"):
-            if sub_path.is_file():
-                self.add(sub_path)
-
-    def add(self, file_path):
-        """
-        Do not this. Has to be removed. It is SLOW.
-        """
-        self.df.loc[file_path] = [
-            hash_file(file_path),
-            get_size(file_path),
-            get_modification_time(file_path),
-            pathlib.Path(file_path).name,
-            extract_file_suffix(file_path),
-        ]
-
     def iterate(self, file_path):
         files = [
             file_path

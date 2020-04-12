@@ -24,7 +24,3 @@ def get_size(file_path):
 
 def get_modification_time(file_path):
     return datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-
-
-def get_size2(file_path):
-    return pathlib.Path(file_path).stat().st_size

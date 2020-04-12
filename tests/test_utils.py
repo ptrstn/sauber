@@ -1,6 +1,6 @@
 import pathlib
 
-from sauber.utils import extract_file_suffix, hash_file, get_size, get_size2
+from sauber.utils import extract_file_suffix, hash_file, get_size
 
 
 def test_hash_file():
