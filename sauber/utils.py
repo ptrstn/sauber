@@ -3,7 +3,7 @@ import hashlib
 import os
 import pathlib
 
-from sauber.settings import CHUNK_SIZE
+from .settings import CHUNK_SIZE
 
 
 def extract_file_suffix(filename):
