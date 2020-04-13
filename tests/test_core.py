@@ -7,7 +7,7 @@ class TestFileHashChecker:
     def test_iterate(self):
         checker = FileHashChecker()
         checker.iterate("test_data/files/")
-        assert len(checker.df) == 21
+        assert len(checker.files) == 21
 
     def test_duplicate_music(self):
         checker = FileHashChecker()
@@ -44,7 +44,7 @@ class TestFileHashChecker:
     def test_duplicate_documents(self):
         checker = FileHashChecker()
         checker.iterate("test_data/files/")
-        filenames = set(checker.duplicate_documents.filename.unique())
+        filenames = set(checker.duplicate_documents.name.unique())
         assert filenames == {
             "document (original).pdf",
             "document (copy).pdf",
@@ -59,13 +59,13 @@ class TestFileHashChecker:
         checker = FileHashChecker()
         checker.iterate("test_data/files/")
         checker.export_data("test_data/data.csv")
-        assert len(checker.df) == 21
+        assert len(checker.files) == 21
 
         checker2 = FileHashChecker()
-        assert len(checker2.df) == 0
+        assert len(checker2.files) == 0
 
         checker2.import_data("test_data/data.csv")
-        assert len(checker2.df) == len(checker.df)
+        assert len(checker2.files) == len(checker.files)
 
     def test_duplicates(self):
         checker = FileHashChecker()
@@ -107,3 +107,51 @@ class TestFileHashChecker:
         actual_duplicates = set(checker.duplicates.index.to_list())
         assert actual_duplicates == expected_duplicates
         assert actual_duplicates - expected_no_duplicates == actual_duplicates
+
+    def test_duplicate_folders(self):
+        checker = FileHashChecker()
+
+        assert checker.directories is not None
+        assert checker.directories.empty
+
+        checker.iterate("test_data/files2/")
+        folder_paths = checker.directories.index.to_list()
+
+        assert pathlib.Path("test_data/files2/A") in folder_paths
+        assert pathlib.Path("test_data/files2/Subfolder") in folder_paths
+        assert pathlib.Path("test_data/files2/Subfolder/A") in folder_paths
+        assert len(checker.directories) == 8
+
+        assert (
+            checker.df.loc[
+                pathlib.Path("test_data/files2/Subfolder"), "number_no_dir_files"
+            ]
+            == 1
+        ), "Should only count the actual files"
+        assert (
+            checker.directories.loc[
+                pathlib.Path("test_data/files2/Subfolder"), "number_files"
+            ]
+            == 3
+        ), "Should contain 2 folders and 1 file"
+
+        assert (
+            checker.directories.loc[
+                pathlib.Path("test_data/files2/A"), "number_no_dir_files"
+            ]
+            == 3
+        )
+        assert (
+            checker.directories.loc[pathlib.Path("test_data/files2/A"), "number_files"]
+            == 3
+        )
+
+        assert (
+            len(
+                checker.directories[
+                    checker.directories.number_no_dir_files
+                    != checker.directories.number_files
+                ]
+            )
+            == 1
+        ), "Only 1 path with subfolders"

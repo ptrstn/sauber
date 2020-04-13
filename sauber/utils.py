@@ -18,9 +18,23 @@ def hash_file(file_path, chunk_size=CHUNK_SIZE):
         return hasher.hexdigest()
 
 
+def hash_text(text):
+    hasher = hashlib.md5()
+    hasher.update(str.encode(text))
+    return hasher.hexdigest()
+
+
 def get_size(file_path):
     return os.path.getsize(file_path)
 
 
 def get_modification_time(file_path):
     return datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+
+
+def extract_parent(path):
+    return pathlib.Path(path).parent
+
+
+def get_number_of_files_in_directory(path):
+    return len(os.listdir(pathlib.Path(path)))

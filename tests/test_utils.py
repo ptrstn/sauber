@@ -1,6 +1,14 @@
 import pathlib
 
-from sauber.utils import extract_file_suffix, hash_file, get_size
+import pytest
+
+from sauber.utils import (
+    extract_file_suffix,
+    hash_file,
+    get_size,
+    extract_parent,
+    get_number_of_files_in_directory,
+)
 
 
 def test_hash_file():
@@ -44,3 +52,15 @@ def test_extract_file_ending():
     assert extract_file_suffix("i/am/a/path.mkv") == ".mkv"
     assert extract_file_suffix(pathlib.Path("data", "music", "song.mp3")) == ".mp3"
     assert extract_file_suffix("test_data/files/base/empty_file") == ""
+
+
+def test_extract_parent():
+    assert pathlib.Path("a/b/c") == extract_parent(pathlib.Path("a/b/c/d.txt"))
+    assert pathlib.Path("") == extract_parent(pathlib.Path("test.txt"))
+
+
+def test_get_number_of_files_in_path():
+    assert get_number_of_files_in_directory("test_data/files2/Subfolder") == 3
+    assert get_number_of_files_in_directory("test_data/files2/Subfolder/Empty") == 0
+    with pytest.raises(NotADirectoryError):
+        get_number_of_files_in_directory("test_data/files2/Subfolder/A/a1.txt")
