@@ -1,5 +1,7 @@
 import pathlib
 
+import pandas
+
 from sauber.core import FileHashChecker
 
 
@@ -104,7 +106,7 @@ class TestFileHashChecker:
         for file in expected_no_duplicates:
             assert file.exists()
 
-        actual_duplicates = set(checker.duplicates.index.to_list())
+        actual_duplicates = set(checker.duplicate_files.index.to_list())
         assert actual_duplicates == expected_duplicates
         assert actual_duplicates - expected_no_duplicates == actual_duplicates
 
@@ -155,3 +157,35 @@ class TestFileHashChecker:
             )
             == 1
         ), "Only 1 path with subfolders"
+
+    def test_directory_hashes(self):
+        checker = FileHashChecker()
+        checker.iterate("test_data/files2/")
+
+        assert (
+            checker.df.loc[pathlib.Path("test_data/files2/A"), "hash"]
+            == "741e5f250d2b1a24fb0b111e3ce5bbcc"
+        )
+        assert (
+            checker.df.loc[pathlib.Path("test_data/files2/Subfolder/A"), "hash"]
+            == checker.df.loc[pathlib.Path("test_data/files2/A"), "hash"]
+        ), "Excact directory copies should have exact hash"
+
+        assert (
+            checker.df.loc[pathlib.Path("test_data/files2/Subfolder/Empty"), "hash"]
+            == "d41d8cd98f00b204e9800998ecf8427e"
+        ), "Empty directories should have empty hash"
+
+        assert not pandas.isnull(
+            checker.df.loc[pathlib.Path("test_data/files2/Subfolder"), "hash"]
+        )
+
+    def test_duplicate_directories(self):
+        checker = FileHashChecker()
+        checker.iterate("test_data/files2/")
+
+        assert set(checker.duplicate_directories.index.to_list()) == {
+            pathlib.Path("test_data/files2/A"),
+            pathlib.Path("test_data/files2/A_copy"),
+            pathlib.Path("test_data/files2/Subfolder/A"),
+        }

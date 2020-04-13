@@ -14,7 +14,6 @@ from .utils import (
     hash_file,
     get_size,
     get_modification_time,
-    get_number_of_files_in_directory,
     hash_text,
 )
 
@@ -38,11 +37,13 @@ class FileHashChecker:
                 "suffix",
                 "is_file",
                 "is_dir",
+                "is_duplicate",
                 "number_hashes",
                 "number_files",
                 "number_no_dir_files",
             ]
         )
+        self.df.is_duplicate = self.df.is_duplicate.astype("bool")
         self.df.set_index("path", inplace=True)
 
     def iterate(self, file_path, debug=False):
@@ -53,18 +54,19 @@ class FileHashChecker:
         files = [file_path for file_path in all_files if file_path.is_file()]
         directories = [file_path for file_path in all_files if file_path.is_dir()]
 
-        if debug:
-            print(f"Adding files to internal dataframe...")
         self._add_files(files, debug)
-
-        if debug:
-            print(f"Adding directories to internal dataframe...")
         self._add_directories(directories, debug)
+        self.update_duplicates()
 
     def _add_files(self, files, debug=False):
+        if debug:
+            print(f"Adding files to internal dataframe...")
+
         df = pandas.DataFrame(files, columns=["path"])
+
         if debug:
             print(f"Calculating md5 hashes...")
+
         df.loc[:, "hash"] = df.apply(lambda row: hash_file(row.path), axis=1)
         df.loc[:, "size"] = df.apply(lambda row: get_size(row.path), axis=1)
         df.loc[:, "time"] = df.apply(
@@ -82,7 +84,13 @@ class FileHashChecker:
         self.df = self.df.reset_index().append(df, sort=True).set_index("path")
 
     def _add_directories(self, directories, debug=False):
+        if debug:
+            print(f"Adding directories to internal dataframe...")
         directories_df = pandas.DataFrame(directories, columns=["path"])
+
+        directories_df.loc[:, "size"] = directories_df.apply(
+            lambda row: get_size(row.path), axis=1
+        )
         directories_df.loc[:, "name"] = directories_df.apply(
             lambda row: row.path.name, axis=1
         )
@@ -97,53 +105,120 @@ class FileHashChecker:
 
     def _update_directories(self, debug=False):
         if debug:
-            print(f"Updating directory hashes...")
+            print(f"Updating directory information...")
 
-        counts_df = (
+        no_dir_counts_df = (
             self.files.groupby("parent").size().reset_index(name="number_no_dir_files")
         )
-        counts_df.rename(columns={"parent": "path"}, inplace=True)
-        counts_df.loc[:, "number_files"] = counts_df.apply(
-            lambda row: get_number_of_files_in_directory(row.path), axis=1
-        )
+        no_dir_counts_df.rename(columns={"parent": "path"}, inplace=True)
 
         # Number of hashed files is number of actual files (no directories) in the beginning
-        # After iterating through all directories it will (hopefully) be number of all files
-        counts_df["number_hashes"] = counts_df.number_no_dir_files
+        # After iterating through all directories it will be number of all files
+        no_dir_counts_df["number_hashes"] = no_dir_counts_df.number_no_dir_files
 
-        counts_df.loc[:, "name"] = counts_df.apply(lambda row: row.path.name, axis=1)
-        self.df.update(counts_df.set_index("path"))
+        self.df.update(no_dir_counts_df.set_index("path"))
 
+        all_file_counts_df = (
+            self.df.groupby("parent").size().reset_index(name="number_files")
+        )
+        all_file_counts_df.rename(columns={"parent": "path"}, inplace=True)
+        all_file_counts_df.loc[:, "name"] = all_file_counts_df.apply(
+            lambda row: row.path.name, axis=1
+        )
+
+        self.df.update(all_file_counts_df.set_index("path"))
+
+        self._handle_empty_folders(debug)
+        self._update_folders_hash(debug)
+
+    def _handle_empty_folders(self, debug):
         self.df.loc[
             (self.df.is_dir == True) & (self.df.number_files.isnull()), "number_files"
         ] = 0
         self.df.loc[(self.df.number_files == 0), "number_hashes"] = 0
         self.df.loc[(self.df.number_files == 0), "number_no_dir_files"] = 0
-        self.df.loc[(self.df.number_files == 0), "hash"] = ""
-        self._update_folders_hash()
 
-    def _update_folders_hash(self):
+    def _update_folders_hash(self, debug=False):
         # First the lowest level in path tree
-        # TODO iterate levels stepwise higher
-        no_hash_folders_df = self.directories.loc[
-            (self.directories.number_hashes == self.directories.number_files)
-            & (self.directories.hash.isnull())
-        ].copy()
-        paths = no_hash_folders_df.index.to_list()
 
-        files_df = self.df.copy()
-        files_df = files_df[files_df.parent.isin(paths)]
+        if debug:
+            print(f"Updating directory hashes...")
+            count = 1
 
-        sum_df = (
-            files_df.groupby("parent")[["hash"]]
-            .sum()
-            .reset_index()
-            .rename(columns={"parent": "path"})
+        while True:
+            if debug:
+                print(f"Iteration {count}...")
+                count += 1
+
+            no_hash_folders_df = self.directories.loc[
+                (
+                    (self.directories.number_hashes == self.directories.number_files)
+                    & (self.directories.hash.isnull())
+                )
+            ].copy()
+
+            if len(no_hash_folders_df) == 0:
+                break
+
+            paths = no_hash_folders_df.index.to_list()
+            files_df = self.df[self.df.parent.isin(paths)].copy()
+
+            sum_df = (
+                files_df.groupby("parent")[["hash"]]
+                .sum()
+                .reset_index()
+                .rename(columns={"parent": "path"})
+            )
+
+            empty_directories_df = no_hash_folders_df[
+                no_hash_folders_df.number_files == 0
+            ].copy()
+            empty_directories_df.loc[:, "hash"] = ""
+            empty_directories_df = empty_directories_df[["hash"]]
+            empty_directories_df.reset_index(inplace=True)
+
+            sum_df = sum_df.append(empty_directories_df)
+
+            sum_df.loc[:, "hash"] = sum_df.apply(
+                lambda row: hash_text(row.hash), axis=1
+            )
+            self.df.update(sum_df.set_index("path").copy())
+
+            sum_df.loc[:, "parent"] = sum_df.apply(lambda row: row.path.parent, axis=1)
+            parents_df = (
+                sum_df.groupby("parent")
+                .size()
+                .reset_index(name="number_hashes")
+                .rename(columns={"parent": "path"})
+            )
+            parents_to_update_list = parents_df.path.to_list()
+            sum_df_to_update = self.df[self.df.index.isin(parents_to_update_list)][
+                ["number_hashes"]
+            ]
+            result_df = sum_df_to_update.add(
+                parents_df[
+                    parents_df.path.isin(sum_df_to_update.index.to_list())
+                ].set_index("path")
+            )
+            self.df.update(result_df)
+
+    def update_duplicates(self):
+        counts_df = (
+            self.df.reset_index()
+            .groupby(["hash", "size", "is_file"])
+            .size()
+            .reset_index(name="counts")
         )
-        sum_df.loc[:, "hash"] = sum_df.apply(lambda row: hash_text(row.hash), axis=1)
-        sum_df.loc[:, "is_file"] = False
-        sum_df.loc[:, "is_dir"] = True
-        self.df.update(sum_df.set_index("path"))
+
+        duplicate_hash_sizes = counts_df[counts_df.counts > 1][
+            ["hash", "size", "is_file"]
+        ].values.tolist()
+
+        self.df.loc[:, "is_duplicate"] = self.df.set_index(
+            ["hash", "size", "is_file"]
+        ).index.isin(duplicate_hash_sizes)
+
+        self.df["is_duplicate"] = self.df["is_duplicate"].astype("bool")
 
     @property
     def files(self):
@@ -155,23 +230,20 @@ class FileHashChecker:
 
     @property
     def duplicates(self):
-        counts_df = (
-            self.df.reset_index()
-            .groupby(["hash", "size"])
-            .size()
-            .reset_index(name="counts")
-        )
-
-        duplicate_hash_sizes = counts_df[counts_df.counts > 1][
-            ["hash", "size"]
-        ].values.tolist()
-
-        self.df.loc[:, "is_duplicate"] = self.df.set_index(["hash", "size"]).index.isin(
-            duplicate_hash_sizes
-        )
-
         return self.df[self.df.is_duplicate].sort_values(
             ["hash", "time", "path"], ascending=[True, True, False]
+        )
+
+    @property
+    def duplicate_files(self):
+        return self.df[self.df.is_duplicate & self.df.is_file].sort_values(
+            ["hash", "time", "path"], ascending=[True, True, False]
+        )
+
+    @property
+    def duplicate_directories(self):
+        return self.df[self.df.is_duplicate & self.df.is_dir].sort_values(
+            ["hash", "path"]
         )
 
     @property
