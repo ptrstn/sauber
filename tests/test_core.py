@@ -189,3 +189,11 @@ class TestFileHashChecker:
             pathlib.Path("test_data/files2/A_copy"),
             pathlib.Path("test_data/files2/Subfolder/A"),
         }
+
+    def test_no_folders(self):
+        checker = FileHashChecker()
+        checker.iterate("test_data/files2/A")
+
+    def test_no_files(self):
+        checker = FileHashChecker()
+        checker.iterate("test_data/files2/Empty")

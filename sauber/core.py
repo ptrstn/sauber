@@ -13,7 +13,6 @@ from .utils import (
     extract_file_suffix,
     hash_file,
     get_size,
-    get_modification_time,
     hash_text,
 )
 
@@ -32,7 +31,6 @@ class FileHashChecker:
                 "path",
                 "hash",
                 "size",
-                "time",
                 "name",
                 "suffix",
                 "is_file",
@@ -58,9 +56,17 @@ class FileHashChecker:
         self._add_directories(directories, debug)
         self.update_duplicates()
 
+        if debug:
+            print(f"Done iterating")
+
     def _add_files(self, files, debug=False):
         if debug:
             print(f"Adding files to internal dataframe...")
+
+        if not files:
+            if debug:
+                print(f"No files to add found.")
+            return
 
         df = pandas.DataFrame(files, columns=["path"])
 
@@ -69,9 +75,6 @@ class FileHashChecker:
 
         df.loc[:, "hash"] = df.apply(lambda row: hash_file(row.path), axis=1)
         df.loc[:, "size"] = df.apply(lambda row: get_size(row.path), axis=1)
-        df.loc[:, "time"] = df.apply(
-            lambda row: get_modification_time(row.path), axis=1
-        )
         df.loc[:, "name"] = df.apply(lambda row: row.path.name, axis=1)
         df.loc[:, "parent"] = df.apply(lambda row: row.path.parent, axis=1)
         df.loc[:, "suffix"] = df.apply(
@@ -86,6 +89,12 @@ class FileHashChecker:
     def _add_directories(self, directories, debug=False):
         if debug:
             print(f"Adding directories to internal dataframe...")
+
+        if not directories:
+            if debug:
+                print(f"No directories to add found.")
+            return
+
         directories_df = pandas.DataFrame(directories, columns=["path"])
 
         directories_df.loc[:, "size"] = directories_df.apply(
@@ -231,13 +240,13 @@ class FileHashChecker:
     @property
     def duplicates(self):
         return self.df[self.df.is_duplicate].sort_values(
-            ["hash", "time", "path"], ascending=[True, True, False]
+            ["hash", "path"], ascending=[True, False]
         )
 
     @property
     def duplicate_files(self):
         return self.df[self.df.is_duplicate & self.df.is_file].sort_values(
-            ["hash", "time", "path"], ascending=[True, True, False]
+            ["hash", "path"], ascending=[True, False]
         )
 
     @property
