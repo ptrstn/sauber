@@ -8,6 +8,7 @@ python:
 install:
   - pip install pytest pytest-cov codecov
   - pip install -e .
+  - mkdir -p test_data/files2/Subfolder/Empty
 
 script:
   - pytest --cov .
