@@ -1,6 +1,7 @@
 import argparse
 import pathlib
 
+from sauber import __version__
 from sauber.core import FileHashChecker
 
 parser = argparse.ArgumentParser(
@@ -59,10 +60,8 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def print_sauber():
-    # Text generated with http://patorjk.com/software/taag/#p=display&f=Doom&t=Sauber
-    print(
-        """
+# Text generated with http://patorjk.com/software/taag/#p=display&f=Doom&t=Sauber
+sauber_text = """
 ███████╗ █████╗ ██╗   ██╗██████╗ ███████╗██████╗ 
 ██╔════╝██╔══██╗██║   ██║██╔══██╗██╔════╝██╔══██╗
 ███████╗███████║██║   ██║██████╔╝█████╗  ██████╔╝
@@ -70,7 +69,13 @@ def print_sauber():
 ███████║██║  ██║╚██████╔╝██████╔╝███████╗██║  ██║
 ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
 """
-    )
+
+
+def print_sauber():
+    try:
+        print(sauber_text)
+    except UnicodeEncodeError:
+        print(f"sauber v{__version__}\n")
 
 
 def print_print_usage_if_no_args(args):
