@@ -24,25 +24,7 @@ pandas.set_option("display.width", 1000)
 class FileHashChecker:
     def __init__(self) -> None:
         super().__init__()
-        self.file_hash_dict = {}
-        self.hasher = hashlib.md5()
-        self.df = pandas.DataFrame(
-            columns=[
-                "path",
-                "hash",
-                "size",
-                "name",
-                "suffix",
-                "is_file",
-                "is_dir",
-                "is_duplicate",
-                "number_hashes",
-                "number_files",
-                "number_no_dir_files",
-            ]
-        )
-        self.df.is_duplicate = self.df.is_duplicate.astype("bool")
-        self.df.set_index("path", inplace=True)
+        self.df = initialize_file_hash_checker_dataframe()
 
     def iterate(self, file_path, debug=False):
         if debug:
@@ -54,7 +36,7 @@ class FileHashChecker:
 
         self._add_files(files, debug)
         self._add_directories(directories, debug)
-        self.update_duplicates()
+        self._update_duplicates()
 
         if debug:
             print(f"Done iterating")
@@ -74,15 +56,15 @@ class FileHashChecker:
             print(f"Calculating md5 hashes...")
 
         df.loc[:, "hash"] = df.apply(lambda row: hash_file(row.path), axis=1)
-        df.loc[:, "size"] = df.apply(lambda row: get_size(row.path), axis=1)
-        df.loc[:, "name"] = df.apply(lambda row: row.path.name, axis=1)
-        df.loc[:, "parent"] = df.apply(lambda row: row.path.parent, axis=1)
+
+        set_size_column(df)
+        set_name_column(df)
+        set_parent_column(df)
+        set_is_file_column(df)
+
         df.loc[:, "suffix"] = df.apply(
             lambda row: extract_file_suffix(row.path), axis=1
         )
-
-        df.loc[:, "is_file"] = True
-        df.loc[:, "is_dir"] = False
 
         self.df = self.df.reset_index().append(df, sort=True).set_index("path")
 
@@ -97,17 +79,10 @@ class FileHashChecker:
 
         directories_df = pandas.DataFrame(directories, columns=["path"])
 
-        directories_df.loc[:, "size"] = directories_df.apply(
-            lambda row: get_size(row.path), axis=1
-        )
-        directories_df.loc[:, "name"] = directories_df.apply(
-            lambda row: row.path.name, axis=1
-        )
-        directories_df.loc[:, "parent"] = directories_df.apply(
-            lambda row: row.path.parent, axis=1
-        )
-        directories_df.loc[:, "is_file"] = False
-        directories_df.loc[:, "is_dir"] = True
+        set_size_column(directories_df)
+        set_name_column(directories_df)
+        set_parent_column(directories_df)
+        set_is_dir_column(directories_df)
 
         self.df = self.df.append(directories_df.set_index("path"))
         self._update_directories(debug)
@@ -138,6 +113,9 @@ class FileHashChecker:
         self.df.update(all_file_counts_df.set_index("path"))
 
         self._handle_empty_folders(debug)
+
+        self.df.sort_index(inplace=True)
+
         self._update_folders_hash(debug)
 
     def _handle_empty_folders(self, debug):
@@ -211,7 +189,7 @@ class FileHashChecker:
             )
             self.df.update(result_df)
 
-    def update_duplicates(self):
+    def _update_duplicates(self):
         counts_df = (
             self.df.reset_index()
             .groupby(["hash", "size", "is_file"])
@@ -231,11 +209,11 @@ class FileHashChecker:
 
     @property
     def files(self):
-        return self.df.loc[self.df.is_file == True].copy()
+        return self.df.loc[self.df.is_file].copy()
 
     @property
     def directories(self):
-        return self.df.loc[self.df.is_dir == True].copy()
+        return self.df.loc[self.df.is_dir].copy()
 
     @property
     def duplicates(self):
@@ -285,3 +263,55 @@ class FileHashChecker:
         imported_df.reset_index(inplace=True)
         self.df = self.df.append(imported_df, ignore_index=True).drop_duplicates()
         self.df.set_index("path", inplace=True)
+
+
+def set_size_column(dataframe):
+    dataframe.loc[:, "size"] = dataframe.apply(lambda row: get_size(row.path), axis=1)
+
+
+def set_name_column(dataframe):
+    dataframe.loc[:, "name"] = dataframe.apply(lambda row: row.path.name, axis=1)
+
+
+def set_parent_column(dataframe):
+    dataframe.loc[:, "parent"] = dataframe.apply(lambda row: row.path.parent, axis=1)
+    dataframe.loc[:, "parent_name"] = dataframe.apply(
+        lambda row: row.parent.name, axis=1
+    )
+
+
+def _set_is_file_and_is_dir_column(dataframe, is_file):
+    dataframe.loc[:, "is_file"] = is_file
+    dataframe.loc[:, "is_dir"] = not is_file
+
+
+def set_is_file_column(dataframe):
+    _set_is_file_and_is_dir_column(dataframe, is_file=True)
+
+
+def set_is_dir_column(dataframe):
+    _set_is_file_and_is_dir_column(dataframe, is_file=False)
+
+
+def initialize_file_hash_checker_dataframe():
+    df = pandas.DataFrame(
+        columns=[
+            "path",
+            "hash",
+            "size",
+            "name",
+            "parent",
+            "parent_name",
+            "suffix",
+            "is_file",
+            "is_dir",
+            "is_duplicate",
+            "number_hashes",
+            "number_files",
+            "number_no_dir_files",
+        ]
+    )
+    df.is_duplicate = df.is_duplicate.astype("bool")
+    df.set_index("path", inplace=True)
+
+    return df

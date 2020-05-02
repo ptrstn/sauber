@@ -164,7 +164,7 @@ class TestFileHashChecker:
 
         assert (
             checker.df.loc[pathlib.Path("test_data/files2/A"), "hash"]
-            == "741e5f250d2b1a24fb0b111e3ce5bbcc"
+            == "a8f963f199e83660cd8ff21ac94d440a"
         )
         assert (
             checker.df.loc[pathlib.Path("test_data/files2/Subfolder/A"), "hash"]
