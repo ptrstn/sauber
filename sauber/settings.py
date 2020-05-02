@@ -34,4 +34,8 @@ DOCUMENT_FILE_EXTENSIONS = [
     ".tex",
     ".txt",
     ".wpd",
+    ".md",
+    ".Rmd",
+    ".tex",
+    ".latex",
 ]
