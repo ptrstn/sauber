@@ -197,3 +197,9 @@ class TestFileHashChecker:
     def test_no_files(self):
         checker = FileHashChecker()
         checker.iterate("test_data/files2/Empty")
+
+
+def test_debug_messages():
+    checker = FileHashChecker()
+    checker.iterate("test_data/files2", debug=True)
+    checker.iterate("test_data/files2/Empty", debug=True)

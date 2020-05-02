@@ -28,10 +28,6 @@ def get_size(file_path):
     return os.path.getsize(file_path)
 
 
-def get_modification_time(file_path):
-    return datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-
-
 def extract_parent(path):
     return pathlib.Path(path).parent
 
