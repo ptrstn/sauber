@@ -31,7 +31,11 @@ def test_hash_file():
 
 
 def test_get_size():
-    assert get_size("test_data") == 4096, "Folder should always have 4096 Byte size"
+    assert get_size("test_data") in (
+        0,
+        4096,
+    ), "Directories should always have a size of 4096 bytes on Linux and 0 bytes on Windows"
+
     assert get_size("test_data/files/base/pdf/document (original).pdf") == 73250
     assert (
         get_size("test_data/files/duplicates/pdf/document (slightly different).pdf")
