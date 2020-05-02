@@ -26,11 +26,11 @@ class FileHashChecker:
         super().__init__()
         self.df = initialize_file_hash_checker_dataframe()
 
-    def iterate(self, file_path, debug=False):
+    def iterate(self, path, debug=False):
         if debug:
-            print(f"Iterating through {file_path}")
+            print(f"Iterating through {path}")
 
-        all_files = [file_path for file_path in pathlib.Path(file_path).rglob("*")]
+        all_files = [file_path for file_path in pathlib.Path(path).rglob("*")]
         files = [file_path for file_path in all_files if file_path.is_file()]
         directories = [file_path for file_path in all_files if file_path.is_dir()]
 
@@ -248,6 +248,22 @@ class FileHashChecker:
     @property
     def duplicate_documents(self):
         return self.duplicates[self.duplicates.suffix.isin(DOCUMENT_FILE_EXTENSIONS)]
+
+    @property
+    def find_music(self):
+        return self.df[self.df.suffix.isin(MUSIC_FILE_EXTENSIONS)]
+
+    @property
+    def find_videos(self):
+        return self.df[self.df.suffix.isin(VIDEO_FILE_EXTENSIONS)]
+
+    @property
+    def find_images(self):
+        return self.df[self.df.suffix.isin(IMAGE_FILE_EXTENSIONS)]
+
+    @property
+    def find_documents(self):
+        return self.df[self.df.suffix.isin(DOCUMENT_FILE_EXTENSIONS)]
 
     def export_data(self, file_path="data.csv"):
         self.df.to_csv(file_path)

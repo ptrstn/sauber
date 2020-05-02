@@ -16,3 +16,4 @@ build: off
 test_script:
   - "%PYTHON%\\python.exe -m pytest --cov ."
   - "%PYTHON%\\python.exe -m sauber --duplicates --duplicate-files --duplicate-directories --duplicate-music --duplicate-videos --duplicate-images --duplicate-documents test_data"
+  - "%PYTHON%\\python.exe -m sauber --find-music --find-videos --find-images --find-documents test_data"

@@ -216,3 +216,20 @@ def test_debug_messages():
     checker = FileHashChecker()
     checker.iterate("test_data/files2", debug=True)
     checker.iterate("test_data/files2/Empty", debug=True)
+
+
+def test_find():
+    checker = FileHashChecker()
+    checker.iterate("test_data/files")
+
+    music = checker.find_music
+    assert music.suffix.unique() == [".mp3"]
+
+    videos = checker.find_videos
+    assert videos.empty
+
+    documents = checker.find_documents
+    assert sorted(documents.suffix.unique()) == [".pdf", ".txt"]
+
+    images = checker.find_images
+    assert images.suffix.unique() == [".jpg"]

@@ -57,6 +57,24 @@ def parse_arguments():
         action="store_true",
     )
 
+    find_group = parser.add_argument_group("Find files")
+
+    find_group.add_argument(
+        "--find-music", help="Show all music", action="store_true",
+    )
+
+    find_group.add_argument(
+        "--find-videos", help="Show all videos", action="store_true",
+    )
+
+    find_group.add_argument(
+        "--find-images", help="Show all images", action="store_true",
+    )
+
+    find_group.add_argument(
+        "--find-documents", help="Show all documents", action="store_true",
+    )
+
     return parser.parse_args()
 
 
@@ -78,15 +96,15 @@ def print_sauber():
         print(f"sauber v{__version__}\n")
 
 
-def print_print_usage_if_no_args(args):
+def print_usage_if_no_args(args):
     if not any(vars(args).values()):
         parser.print_usage()
         return
 
 
-def handle_arguments(args, checker):
+def _handle_arguments(args, checker, keyword):
     args_dict = {
-        key: value for (key, value) in vars(args).items() if key.startswith("duplicate")
+        key: value for (key, value) in vars(args).items() if key.startswith(keyword)
     }
 
     for key, value in args_dict.items():
@@ -101,16 +119,25 @@ def handle_arguments(args, checker):
                 print("None found.")
 
 
+def handle_duplicate_arguments(args, checker):
+    _handle_arguments(args, checker, keyword="duplicate")
+
+
+def handle_find_arguments(args, checker):
+    _handle_arguments(args, checker, keyword="find")
+
+
 def main():
     args = parse_arguments()
 
     print_sauber()
-    print_print_usage_if_no_args(args)
+    print_usage_if_no_args(args)
 
     checker = FileHashChecker()
     checker.iterate(pathlib.Path(args.path), debug=args.debug)
 
-    handle_arguments(args, checker)
+    handle_duplicate_arguments(args, checker)
+    handle_find_arguments(args, checker)
 
 
 if __name__ == "__main__":

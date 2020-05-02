@@ -12,6 +12,7 @@ install:
 script:
   - pytest --cov .
   - sauber --duplicates --duplicate-files --duplicate-directories --duplicate-music --duplicate-videos --duplicate-images --duplicate-documents test_data
+  - sauber --find-music --find-videos --find-images --find-documents test_data
 
 after_success:
   - codecov
