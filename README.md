@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.com/ptrstn/sauber.svg?branch=master)](https://travis-ci.com/ptrstn/sauber)
 [![codecov](https://codecov.io/gh/ptrstn/sauber/branch/master/graph/badge.svg)](https://codecov.io/gh/ptrstn/sauber)
+[![Build status](https://ci.appveyor.com/api/projects/status/73c2n36tmhlxfwyj/branch/master?svg=true)](https://ci.appveyor.com/project/ptrstn/sauber/branch/master)
 
 # Sauber
 
